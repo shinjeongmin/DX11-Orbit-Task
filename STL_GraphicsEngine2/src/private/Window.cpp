@@ -1,0 +1,175 @@
+#include "Window.h"
+
+#include "InputProcessor.h"
+
+HINSTANCE Window::hInstance;
+HWND Window::hwnd;
+int Window::width;
+int Window::height;
+std::wstring Window::title;
+
+// 윈도우 메시지 처리할 때 사용할 프로시저 함수.
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	// 창이 닫히면 프로그램 종료.
+	switch (msg)
+	{
+	case WM_DESTROY:
+		// 종료 메시지 발생 시킴.
+		PostQuitMessage(0);
+		return 0;
+
+		// 입력 처리.
+	case WM_ACTIVATEAPP:
+		{
+			Keyboard::ProcessMessage(msg, wParam, lParam);
+			Mouse::ProcessMessage(msg, wParam, lParam);
+		}
+		return 0;
+
+		// 키보드 입력 처리.
+	case WM_KEYDOWN:
+	case WM_KEYUP:
+	case WM_SYSKEYDOWN:
+	case WM_SYSKEYUP:
+		{
+			Keyboard::ProcessMessage(msg, wParam, lParam);
+		}
+		return 0;
+
+		// 마우스 입력 처리.
+	case WM_INPUT:
+	case WM_MOUSEMOVE:
+	case WM_LBUTTONDOWN:
+	case WM_LBUTTONUP:
+	case WM_RBUTTONDOWN:
+	case WM_RBUTTONUP:
+	case WM_MBUTTONDOWN:
+	case WM_MBUTTONUP:
+	case WM_MOUSEWHEEL:
+	case WM_MOUSEHOVER:
+		{
+			Mouse::ProcessMessage(msg, wParam, lParam);
+		}
+		return 0;
+	}
+
+	// 기본 윈도우 프로시저 함수 호출. (기본 메시지는 윈도우에 맡김.)
+	return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
+bool Window::InitializeWindow()
+{
+	return InitializeWindow(hInstance, width, height, title);
+}
+
+// 윈도우 생성 및 초기화.
+bool Window::InitializeWindow(HINSTANCE hInstance, int width, int height, std::wstring title)
+{
+	// 변수 값 설정.
+	Window::hInstance = hInstance;
+	Window::width = width;
+	Window::height = height;
+	Window::title = title;
+
+	// 윈도우 클래스 생성.
+	WNDCLASS wc;
+	ZeroMemory(&wc, sizeof(wc)); // 모두 0으로 초기화.
+
+	// 값 설정.
+	wc.lpszClassName = TEXT("GfxEngine");		// 클래스 이름.
+	wc.hInstance = hInstance;					// 인스턴스.
+	wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);	// 아이콘.
+	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);	// 커서.
+	wc.lpfnWndProc = WindowProc;					// 메시지 처리 함수.
+
+	// 클래스 등록.
+	if (RegisterClass(&wc) == false)
+	{
+		// 오류 검출.
+		MessageBox(nullptr, L"클래스 등록 실패", L"오류", 0);
+
+		// 강제 종료.
+		exit(-1);
+	}
+
+	// 너비 조정.
+	RECT rect = { 0, 0, width, height };
+	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, false);
+	width = rect.right - rect.left;
+	height = rect.bottom - rect.top;
+
+	// 윈도우 생성.
+	hwnd = CreateWindow(
+		wc.lpszClassName,
+		title.c_str(),
+		WS_OVERLAPPEDWINDOW,
+		0, 0,
+		width, height,
+		NULL,
+		NULL,
+		hInstance,
+		NULL
+	);
+
+	// 오류 검사.
+	if (hwnd == nullptr)
+	{
+		MessageBox(nullptr, L"윈도우 생성 실패", L"오류", 0);
+		return false;
+	}
+
+	// 윈도우 보이기.
+	ShowWindow(hwnd, SW_SHOW);
+	UpdateWindow(hwnd);
+
+	// 입력 초기화.
+	InputProcessor::InitializeInput(hwnd);
+
+	return true;
+}
+
+HINSTANCE Window::Instance()
+{
+	return hInstance;
+}
+
+void Window::SetInstance(HINSTANCE hInstance)
+{
+	Window::hInstance = hInstance;
+}
+
+HWND Window::WindowHandle()
+{
+	return hwnd;
+}
+
+int Window::Width()
+{
+	return width;
+}
+
+void Window::SetWidth(int width)
+{
+	Window::width = width;
+}
+
+int Window::Height()
+{
+	return height;
+}
+
+void Window::SetHeight(int height)
+{
+	Window::height = height;
+}
+
+std::wstring Window::Title()
+{
+	return title;
+}
+
+void Window::SetTitle(std::wstring title)
+{
+	Window::title = title;
+}
